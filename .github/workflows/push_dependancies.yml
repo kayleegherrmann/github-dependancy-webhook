@@ -14,18 +14,27 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+      # Reusable workflows check out the caller repo, so pull this repo's scripts separately.
+      - name: Checkout webhook scripts
+        uses: actions/checkout@v5
+        with:
+          repository: kayleegherrmann/github-dependancy-webhook
+          ref: ${{ github.workflow_sha }}
+          path: .github-dependancy-webhook
+          sparse-checkout: scripts
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
 
       - name: Generate Composer dependencies
-        run: node scripts/composer-dependencies.js > composer.json.payload
+        run: node .github-dependancy-webhook/scripts/composer-dependencies.js > composer.json.payload
 
       - name: Generate npm dependencies
-        run: node scripts/npm-dependencies.js > npm.json.payload
+        run: node .github-dependancy-webhook/scripts/npm-dependencies.js > npm.json.payload
 
       - name: Send Composer webhook
         env:
