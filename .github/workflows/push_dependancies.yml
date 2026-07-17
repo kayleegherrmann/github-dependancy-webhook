@@ -1,9 +1,10 @@
-name: Push Dependencies Webhook
+name: Push Composer Dependencies
 
 on:
-  push:
-    paths:
-      - composer.lock
+  workflow_call:
+    secrets:
+      DEPENDENCY_WEBHOOK:
+        required: true
 
   workflow_dispatch:
 
