@@ -32,9 +32,13 @@ jobs:
           node-version: 22
 
       - name: Generate Composer dependencies
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message || 'Manual workflow dispatch' }}
         run: node .github-dependancy-webhook/scripts/composer-dependencies.cjs > composer.json.payload
 
       - name: Generate npm dependencies
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message || 'Manual workflow dispatch' }}
         run: node .github-dependancy-webhook/scripts/npm-dependencies.cjs > npm.json.payload
 
       - name: Send Composer webhook

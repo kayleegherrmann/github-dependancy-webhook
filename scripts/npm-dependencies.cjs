@@ -1,7 +1,16 @@
 const fs = require('fs');
 
+const meta = {
+    repository: process.env.GITHUB_REPOSITORY || null,
+    branch: process.env.GITHUB_REF_NAME || null,
+    commit: process.env.GITHUB_SHA || null,
+    actor: process.env.GITHUB_ACTOR || null,
+    message: process.env.COMMIT_MESSAGE || 'Manual workflow dispatch',
+};
+
 if (!fs.existsSync('package.json') || !fs.existsSync('package-lock.json')) {
     console.log(JSON.stringify({
+        ...meta,
         ecosystem: 'npm',
         dependencies: []
     }));
@@ -34,6 +43,7 @@ const dependencies = Object.keys(directDependencies)
     .filter(Boolean);
 
 console.log(JSON.stringify({
+    ...meta,
     ecosystem: 'npm',
     dependencies
 }));

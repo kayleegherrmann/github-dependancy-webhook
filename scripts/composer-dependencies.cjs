@@ -1,7 +1,16 @@
 const fs = require('fs');
 
+const meta = {
+    repository: process.env.GITHUB_REPOSITORY || null,
+    branch: process.env.GITHUB_REF_NAME || null,
+    commit: process.env.GITHUB_SHA || null,
+    actor: process.env.GITHUB_ACTOR || null,
+    message: process.env.COMMIT_MESSAGE || 'Manual workflow dispatch',
+};
+
 if (!fs.existsSync('composer.json') || !fs.existsSync('composer.lock')) {
     console.log(JSON.stringify({
+        ...meta,
         ecosystem: 'composer',
         dependencies: []
     }));
@@ -23,6 +32,7 @@ const packages = [
 ];
 
 console.log(JSON.stringify({
+    ...meta,
     ecosystem: 'composer',
 
     dependencies: packages
