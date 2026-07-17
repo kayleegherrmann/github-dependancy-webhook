@@ -2,10 +2,9 @@ name: Push Dependency Snapshots
 
 on:
   workflow_call:
-    inputs:
-      webhook_url:
+    secrets:
+      DEPENDENCY_WEBHOOK:
         required: true
-        type: string
 
   workflow_dispatch:
 
@@ -30,7 +29,7 @@ jobs:
 
       - name: Send Composer webhook
         env:
-          WEBHOOK_URL: ${{ inputs.webhook_url }}
+          WEBHOOK_URL: ${{ secrets.DEPENDENCY_WEBHOOK }}
         run: |
           curl \
             --fail-with-body \
@@ -41,7 +40,7 @@ jobs:
 
       - name: Send npm webhook
         env:
-          WEBHOOK_URL: ${{ inputs.webhook_url }}
+          WEBHOOK_URL: ${{ secrets.DEPENDENCY_WEBHOOK }}
         run: |
           curl \
             --fail-with-body \
