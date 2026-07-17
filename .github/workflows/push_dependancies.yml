@@ -17,21 +17,12 @@ jobs:
         uses: actions/checkout@v5
 
       # Reusable workflows check out the caller repo, so pull this repo's scripts separately.
-      # github.workflow_sha is the caller commit; use the ref from github.workflow_ref (@main, tag, or SHA).
-      - name: Resolve webhook scripts source
-        id: scripts
-        shell: bash
-        run: |
-          workflow_ref='${{ github.workflow_ref }}'
-          repo_and_path="${workflow_ref%@*}"
-          echo "repository=${repo_and_path%%/.github/*}" >> "$GITHUB_OUTPUT"
-          echo "ref=${workflow_ref#*@}" >> "$GITHUB_OUTPUT"
-
+      # github.workflow_* is the caller; job.workflow_* is this reusable workflow's repo/commit.
       - name: Checkout webhook scripts
         uses: actions/checkout@v5
         with:
-          repository: ${{ steps.scripts.outputs.repository }}
-          ref: ${{ steps.scripts.outputs.ref }}
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
           path: .github-dependancy-webhook
           sparse-checkout: scripts
 
