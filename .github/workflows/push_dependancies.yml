@@ -32,10 +32,10 @@ jobs:
           node-version: 22
 
       - name: Generate Composer dependencies
-        run: node .github-dependancy-webhook/scripts/composer-dependencies.js > composer.json.payload
+        run: node .github-dependancy-webhook/scripts/composer-dependencies.cjs > composer.json.payload
 
       - name: Generate npm dependencies
-        run: node .github-dependancy-webhook/scripts/npm-dependencies.js > npm.json.payload
+        run: node .github-dependancy-webhook/scripts/npm-dependencies.cjs > npm.json.payload
 
       - name: Send Composer webhook
         env:
