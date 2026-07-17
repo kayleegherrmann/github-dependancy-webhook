@@ -7,10 +7,6 @@ on:
         required: true
         type: string
 
-    secrets:
-      DEPENDENCY_WEBHOOK_SECRET:
-        required: true
-
   workflow_dispatch:
 
 jobs:
@@ -35,25 +31,21 @@ jobs:
       - name: Send Composer webhook
         env:
           WEBHOOK_URL: ${{ inputs.webhook_url }}
-          WEBHOOK_SECRET: ${{ secrets.DEPENDENCY_WEBHOOK_SECRET }}
         run: |
           curl \
             --fail-with-body \
             --request POST \
             --header "Content-Type: application/json" \
-            --header "X-Signature: $(openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" composer.json.payload)" \
             --data @composer.json.payload \
             "$WEBHOOK_URL"
 
       - name: Send npm webhook
         env:
           WEBHOOK_URL: ${{ inputs.webhook_url }}
-          WEBHOOK_SECRET: ${{ secrets.DEPENDENCY_WEBHOOK_SECRET }}
         run: |
           curl \
             --fail-with-body \
             --request POST \
             --header "Content-Type: application/json" \
-            --header "X-Signature: $(openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" npm.json.payload)" \
             --data @npm.json.payload \
             "$WEBHOOK_URL"
