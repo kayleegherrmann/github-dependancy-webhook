@@ -1,0 +1,68 @@
+name: Push Dependencies Webhook
+
+on:
+  push:
+    paths:
+      - composer.lock
+
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Send dependency webhook
+        env:
+          WEBHOOK_URL: ${{ secrets.DEPENDENCY_WEBHOOK }}
+        run: |
+          jq -n \
+            --arg repository "${{ github.repository }}" \
+            --arg branch "${{ github.ref_name }}" \
+            --arg commit "${{ github.sha }}" \
+            --arg actor "${{ github.actor }}" \
+            --arg message "${{ github.event.head_commit.message || 'Manual workflow dispatch' }}" \
+            --slurpfile lock composer.lock \
+            --slurpfile composer composer.json \
+            '
+            (
+              ($composer[0].require // {})
+              +
+              ($composer[0]["require-dev"] // {})
+              |
+              keys
+            ) as $direct_dependencies |
+
+            {
+              repository: $repository,
+              branch: $branch,
+              commit: $commit,
+              actor: $actor,
+              message: $message,
+              ecosystem: "composer",
+
+              dependencies:
+                (
+                  ($lock[0].packages // []) +
+                  ($lock[0]["packages-dev"] // [])
+                )
+                |
+                map(select(.name as $name | $direct_dependencies | index($name)))
+                |
+                map({
+                  name: .name,
+                  version: .version,
+                  type: .type,
+                  source_reference: .source.reference
+                })
+            }
+            ' \
+          | curl \
+              --fail-with-body \
+              --request POST \
+              --header "Content-Type: application/json" \
+              --data @- \
+              "$WEBHOOK_URL"
