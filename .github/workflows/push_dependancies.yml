@@ -1,9 +1,14 @@
-name: Push Composer Dependencies
+name: Push Dependency Snapshots
 
 on:
   workflow_call:
+    inputs:
+      webhook_url:
+        required: true
+        type: string
+
     secrets:
-      DEPENDENCY_WEBHOOK:
+      DEPENDENCY_WEBHOOK_SECRET:
         required: true
 
   workflow_dispatch:
@@ -16,54 +21,39 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Send dependency webhook
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate Composer dependencies
+        run: node scripts/composer-dependencies.js > composer.json.payload
+
+      - name: Generate npm dependencies
+        run: node scripts/npm-dependencies.js > npm.json.payload
+
+      - name: Send Composer webhook
         env:
-          WEBHOOK_URL: ${{ secrets.DEPENDENCY_WEBHOOK }}
+          WEBHOOK_URL: ${{ inputs.webhook_url }}
+          WEBHOOK_SECRET: ${{ secrets.DEPENDENCY_WEBHOOK_SECRET }}
         run: |
-          jq -n \
-            --arg repository "${{ github.repository }}" \
-            --arg branch "${{ github.ref_name }}" \
-            --arg commit "${{ github.sha }}" \
-            --arg actor "${{ github.actor }}" \
-            --arg message "${{ github.event.head_commit.message || 'Manual workflow dispatch' }}" \
-            --slurpfile lock composer.lock \
-            --slurpfile composer composer.json \
-            '
-            (
-              ($composer[0].require // {})
-              +
-              ($composer[0]["require-dev"] // {})
-              |
-              keys
-            ) as $direct_dependencies |
+          curl \
+            --fail-with-body \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --header "X-Signature: $(openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" composer.json.payload)" \
+            --data @composer.json.payload \
+            "$WEBHOOK_URL"
 
-            {
-              repository: $repository,
-              branch: $branch,
-              commit: $commit,
-              actor: $actor,
-              message: $message,
-              ecosystem: "composer",
-
-              dependencies:
-                (
-                  ($lock[0].packages // []) +
-                  ($lock[0]["packages-dev"] // [])
-                )
-                |
-                map(select(.name as $name | $direct_dependencies | index($name)))
-                |
-                map({
-                  name: .name,
-                  version: .version,
-                  type: .type,
-                  source_reference: .source.reference
-                })
-            }
-            ' \
-          | curl \
-              --fail-with-body \
-              --request POST \
-              --header "Content-Type: application/json" \
-              --data @- \
-              "$WEBHOOK_URL"
+      - name: Send npm webhook
+        env:
+          WEBHOOK_URL: ${{ inputs.webhook_url }}
+          WEBHOOK_SECRET: ${{ secrets.DEPENDENCY_WEBHOOK_SECRET }}
+        run: |
+          curl \
+            --fail-with-body \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --header "X-Signature: $(openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" npm.json.payload)" \
+            --data @npm.json.payload \
+            "$WEBHOOK_URL"
